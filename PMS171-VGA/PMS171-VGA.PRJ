@@ -1,0 +1,29 @@
+[INI]
+PROJECT=PRE_FILE
+[LINKS]
+~PMS171-VGA.C
+[HEAD]
+~extern.h
+[DEPEND]
+~$:INC_PDK\PMS171B.INC
+~PMS171-VGA.PRE
+[Ram_Break]
+Break1=No 0000
+Break2=No 0000
+Break3=No 0000
+Break4=No 0000
+[Stack_Break]
+Break1=Au 0000 00FF
+Break2=Au 0000 00FF
+Break3=Au 0000 00FF
+Break4=Au 0000 00FF
+Break5=Au 0000 00FF
+Break6=Au 0000 00FF
+Break7=Au 0000 00FF
+Break8=Au 0000 00FF
+[Ctrl_Break]
+Mark=51 1
+ICE=0 6 2 1388
+[PRE]
+~PMS171-VGA.PRJ
+~PMS171-VGA.PRE

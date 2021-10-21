@@ -1,0 +1,25 @@
+
+.CHIP	PMS171B
+//{{PADAUK_CODE_OPTION
+	.Code_Option	LVR		3.0V
+	.Code_Option	Comparator_Edge	All_Edge
+	.Code_Option	GPC_PWM		Disable
+	.Code_Option	TM2_Out1	PB2
+	.Code_Option	TMx_Bit		7BIT
+	.Code_Option	TMx_Source	16MHz
+	.Code_Option	Interrupt_Src1	PB.0
+	.Code_Option	Interrupt_Src0	PA.0
+	.Code_Option	Bootup_Time	Fast
+	.Code_Option	PB4_PB5_Drive	Strong
+	.Code_Option	Security	Enable		// Security 7/8 words Enable
+//}}PADAUK_CODE_OPTION
+
+//	----------- IMPORTANT -------------
+//	Please don't change the follow code
+//	It only be used for internal Mini-C
+//	-----------------------------------
+
+	.JMP	FPPA0	<?>, 0
+.ROMADR	0x10
+	.PUT	Interrupt <reti>, 8
+
