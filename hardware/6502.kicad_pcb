@@ -13,7 +13,7 @@
   (title_block
     (title "ABNielsen.com 6502 Single Board Computer")
     (rev 1)
-    (company "License: Attribution 4.0 International (CC BY 4.0)")
+    (comment 1 "License: Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)")
   )
 
   (layers
