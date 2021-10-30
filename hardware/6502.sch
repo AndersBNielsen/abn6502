@@ -1,5 +1,4 @@
 EESchema Schematic File Version 4
-LIBS:6502-cache
 EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
@@ -1237,7 +1236,7 @@ Wire Wire Line
 Wire Wire Line
 	10500 1100 10500 975 
 $Comp
-L Connector:USB_B_Micro J9
+L 6502-rescue:USB_B_Micro-Connector J9
 U 1 1 61E811F7
 P 9600 1200
 F 0 "J9" H 9657 1667 50  0000 C CNN
