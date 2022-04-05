@@ -2,7 +2,9 @@ ABNielsen.com 6502 Single Board Computer R1
 
 This is a 6502-based complete single board computer intended to help during the global IC shortage. Why use new chips when you can reuse scrap?
 
-Video about the wireless bootloader: https://youtu.be/NABU7gQDtcs
+Video about the wireless bootloader: 
+
+[![Watch the video](https://img.youtube.com/vi/NABU7gQDtcs/default.jpg)](https://youtu.be/NABU7gQDtcs)
 
 Check out the NEW project on HackADay if you want to read more and see some pretty pictures :)
 
