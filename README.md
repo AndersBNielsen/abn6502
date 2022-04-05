@@ -4,7 +4,9 @@ This is a 6502-based complete single board computer intended to help during the 
 
 Video about the wireless bootloader: 
 
-[![Watch the video](https://img.youtube.com/vi/NABU7gQDtcs/default.jpg)](https://youtu.be/NABU7gQDtcs)
+<a href="http://www.youtube.com/watch?feature=player_embedded&v=NABU7gQDtcs" target="_blank">
+ <img src="http://img.youtube.com/vi/NABU7gQDtcs/mqdefault.jpg" alt="Watch the video" width="240px" height="auto" border="10" />
+</a>
 
 Check out the NEW project on HackADay if you want to read more and see some pretty pictures :)
 
