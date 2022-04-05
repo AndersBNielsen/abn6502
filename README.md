@@ -4,11 +4,11 @@ This is a 6502-based complete single board computer intended to help during the 
 
 Video about the wireless bootloader: https://youtu.be/NABU7gQDtcs
 
-Check out the (old) project on HackADay if you want to read more and see some pretty pictures :)
+Check out the NEW project on HackADay if you want to read more and see some pretty pictures :)
 
-https://hackaday.io/project/181897-abnielsencom-6502-sbc
+https://hackaday.io/project/184725-abn6502-sbc-r1
 
-R1 will get its own separate project on HackADay - in celebration that I got rid of the Padauk MCU without increasing the chip count!
+For R1 I got rid of the Padauk MCU without increasing the chip count!
 
 Build instructions:
 
