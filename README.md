@@ -14,8 +14,8 @@ Build instructions:
 
 1) Send gerber files from /hardware to your favorite board house
 2) Build the project using assemble.sh - this will also try to burn the main ROM using Minipro. Dependencies: [CC65] (https://github.com/cc65/cc65) and a way to burn the ROM's.
-3) Burn the ROMs. I use a TL866II Plus variant for the actual ROMs.
-4) Source the IC's - the spirit of this project is to contribute as little as possible to the global IC shortage and get used chips locally or from Ebay/AliExpress/etc.
+3) Source the IC's - the spirit of this project is to contribute as little as possible to the global IC shortage and get used chips locally or from Ebay/AliExpress/etc.
+4) Burn the ROMs. I use a TL866II Plus variant for the actual ROMs.
 5) Solder away
 6) For the PS/2-keyboard I use Ben Eater's (a.k.a. Dieter Müller's) interface: https://www.reddit.com/r/beneater/comments/mjeilv/keyboard_interface_diagram/
 7) Enjoy!
