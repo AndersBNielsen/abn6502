@@ -1,0 +1,6 @@
+*.o
+*.bin
+build/userlisting.txt
+build/listing.txt
+.DS_Store
+hardware/6502-backups
