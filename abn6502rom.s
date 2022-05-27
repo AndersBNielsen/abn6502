@@ -1,7 +1,8 @@
+
 .feature string_escapes ; Allow c-style string escapes when using ca65
 .feature org_per_seg
-DEBUG = 0
-PORTB = $6000
+DEBUG = 1
+PORTB = $6000 ; PB0: SCK/SCL, PB1: RF CS, PB2: RF CE, PB3: SDA, PB4,PB5: MISO ,PB6: PS/2 Clock In, PB7: MOSI/T1 Out (Tape drive output)
 PORTA = $6001
 DDRB = $6002
 DDRA = $6003
@@ -12,25 +13,31 @@ T1LH = $6007
 T2CL = $6008
 T2CH = $6009
 SR1   = $600A
-ACR  = $600B ; [7] PB.7 T1 OUT, [6] T1 mode , [5] T2, [4:2] Shift register control, [1] PB Latch enable, [2] PA Latch Enable
+ACR  = $600B ; [7] PB.7 T1 OUT, [6] T1 mode , [5] T2, [4:2] Shift register control, [1] PB Latch enable, [0] PA Latch Enable
 PCR  = $600C ; [7:5] CB2 Control, [4] CBl Control, [3:1] CA2 Control, [0] CAl Control
 IFR  = $600D ; [7:0] IRQ Tl T2 CBl CB2 SR CA1 CA2
 IER  = $600E ; [7:0] S/C Tl T2 CBl CB2 SR CA1 CA2
 PORTANHS = $600F
 CTRL = $5000
 
-TIMEOUT = 7998 ; Should be around 4ms
+;If using port A instead of the shift register then change this to PORTA
+KEYBOARD = $0C
+
+  TIMEOUT = 7998 ; Should be around 4ms
 
 kb_wptr = $0000
 kb_rptr = $0001
 kb_flags = $0002
 kb_last = $0004
+kbshift = $07
+kbbit = $09 ; Used to count bits
 
 RELEASE = %00000001
 SHIFT   = %00000010
 ECODE   = %00000100
 CRSR    = %01000000
 CRSRF   = %10000000
+KTIMEOUT= %00100000
 
 kb_buffer = $0200  ; 256-byte kb buffer 0200-02ff
 
@@ -44,12 +51,17 @@ R_ARR_KEY = $F1
 HOME_KEY = $F0
 ESC_KEY  =  $1b
 
+DEBUGP = $19
+DEBUGPH = $1A
 CRSRT   = $1B
 CRSRCHR = $1C
 RF_ERR = $1D
 ERRS = $1F
 
-
+TMPL = $3C
+TMPH = $3D
+LASTKB = $3E
+LASTKBH = $3F
 MILLIS = $40
 MILLISH = $41
 
@@ -67,9 +79,10 @@ CRSRPNT = $52
 CRSRPNT2 = CRSRPNT+1
 
 SCREENSTARTH = $20
-SCREENSTARTL = $4B
-LINESTART = 11
-NUMLINES = 30
+SCREENSTARTL = $4D
+LINESTART = 13
+LINEEND = 61
+NUMLINES = 29
 
 MONH = $59
 MONL = $58
@@ -85,7 +98,13 @@ MSGBUF = $90
 ;+32bytes == To $AF
 
 uservia = PORTB
-mosi  = %01000000
+mosi  = %10000000
+miso  = %00100000
+
+SDA   = 8; PB3 bitmask
+SDA_INV = $F7
+SCL   = 1; PB0 bitmask
+SCL_INV = $FE
 
 .segment "RODATA"
 ;.org $8000 ; Not strictly needed with CA65 but shows correct address in listing.txt
@@ -109,20 +128,16 @@ mosi  = %01000000
           inx
           bne clearstack
 
-noclear: ;Soft reset point - BRK
-          lda #$01  ; CA1 positive active edge
-          sta PCR
-          sta CTRL ; Enable video, bank 0
-          lda #%11000010  ; Set CA1 + T1
-          sta IER
-          LDA #%01011000
-          STA ACR             ; T1 continuous, PB7 disabled, Shift Out Ø2
-          ;cli       ; Enable interrupts Let's do this when KB is ready
+  lda #8
+  sta kbbit
+  lda #10
+  sta kbshift
 
-          LDA #<TIMEOUT
-          STA T1CL            ; Set low byte of timer1 counter
-          LDA #>TIMEOUT
-          STA T1CH            ; Set high byte of timer1 counter
+noclear: ;Soft reset point - BRK
+          lda #$03  ;
+          sta CTRL ; Enable video, bank 0
+          ;debug, ca1 disabled
+
 
           jsr clrscn
 
@@ -130,27 +145,47 @@ noclear: ;Soft reset point - BRK
           sta CRSRPNT
           lda #SCREENSTARTH
           sta CRSRPNT2
-          lda #$FF
-          sta DDRA
           tax
           txs
 
-          lda #2
-          sta PORTB ; Set SPI CS high
-          lda #%01010111 ; Port B DDR for SPI
+          ;lda #2
+          ;sta PORTB ; Set SPI CS high
+          lda #%10010111 ; Port B DDR for SPI
           sta DDRB
-          lda #0
+          lda #$0c
+          sta $19
 
+          lda #0
           sta DDRA ; Port A all inputs for keyboard
           sta kb_rptr ; Init keyboard pointers before enabling interrupts
           sta kb_wptr
           sta RF_ERR ; Reset RF error
-          cli
+          sta $1A
+          ;cli
+
+          lda #%11000000  ; Set T1
+          sta IER
+          LDA #%01000000
+          STA ACR             ; T1 continuous, PB7 disabled
+          ;cli       ; Enable interrupts Let's do this when KB is ready
+          LDA #<TIMEOUT
+          STA T1CL            ; Set low byte of timer1 counter
+          LDA #>TIMEOUT
+          STA T1CH            ; Set high byte of timer1 counter
+
+          lda #01
+          sta $5000
 
           ldx #$10 ; Read first tx addr byte = should be default, if not then no module connected
           jsr rw_reg
+          sta $0f
           cmp #$E7
-          beq welcome
+          bne norfmodule
+          jsr initrf24
+          bne welcome ; BRA
+
+          norfmodule:
+        ;debug, disable RF
           inc RF_ERR ; No module, set RF_ERR
 welcome:
           jsr PRIMM
@@ -158,16 +193,34 @@ message:	.asciiz "GREETINGS PROFESSOR FALKEN.", "\n", "SHALL WE PLAY A GAME?", "
 
 welcomedone:
 
-          bit ACR
-          bmi skiprf
-          lda RF_ERR
-          bne skiprf
-          sei
-          jsr initrf24
-          cli
+;Let's enable the keyboard
+LDA #%01101100
+STA ACR             ; T1 continuous, T2 count, PB7 disabled, Shift In External
+lda #%11100000  ; Set T1 + T2
+sta IER
+lda kbbit
+sta T2CL
+lda #0
+sta T2CH
+cli
 
-main:
+main: ; loop
+
+;Debug
+LDA LASTKB
+sta ERRS
+
+lda MILLIS ; Don't do RF if key just pressed
+cmp LASTKB
+lda MILLISH
+sbc LASTKBH
+bcc skiprf
+
+notyet:
+
 lda RF_ERR
+;DEBUG
+;lda #1
 bne skiprf
 bit ACR ; If ACR.7 is set then we can't use SPI since MOSI is outputting TM1.
 bpl rfstuff
@@ -177,7 +230,7 @@ rfstuff:
 ;jsr readrf24regs ; Debug - we can also just do an rf_nop to read rf24 status (RF_STS)
 
 jsr rf_nop ; Not debug
-cli
+
 ;If msg received, put it in MSGBUF
 bit RF_STS
 bvs gtgm ; Check irq
@@ -186,7 +239,6 @@ cmp #$0e ; Check if fifo empty
 bne gtgm
 jmp nomsg; No msg received
 gtgm:
-sei
 jsr getmessage
 
 lda $90
@@ -201,7 +253,6 @@ lda $92
 sta $d0 ; Data size low byte
 lda $93
 sta $d1 ; Data size high byte
-
   jsr PRIMM
   .asciiz "Receiving $"
   lda $d1
@@ -211,13 +262,15 @@ sta $d1 ; Data size high byte
   jsr PRIMM
   .asciiz " bytes. \n"
 
+
 datapacket:
 
 getmsg:
 inc $d2
 lda $90
-cmp #1
+;cmp #1
 bne nextpacket ; Data package with ID > 1
+
 lda $d1 ; Size high byte
 sta SHB
 inc SHB
@@ -226,17 +279,19 @@ sta SLB
 lda #0
 sta SVP
 lda #3
-sta SVP+1 ; Save pointer starts at $0300
+sta SVPH ; Save pointer starts at $0300
+jmp main
 
 nextpacket:
 ldx #2
 fetchpacket:
+
 lda $90,x
 ldy #0
 sta (SVP),y
 inc SVP
 bne nnhb
-inc SVP+1
+inc SVPH
 nnhb:
 dec SLB
 bne movealong
@@ -250,7 +305,7 @@ inc SHB
 lda SLB
 jsr printbyte
 jsr PRIMM
-.asciiz " bytes left(hex)"
+.asciiz " bytes left(hex) "
 lda CRSRPNT
 and #%11000000 ; keep only section bits
 ora #LINESTART ;
@@ -267,20 +322,17 @@ txdone:
     sta kb_rptr ; Reset the keyboard pointers here.
     sta kb_wptr
     sta $30
-    lda CRSRPNT ; Let's return to beginning of the line
-    and #%11000000 ; keep only section bits
-    ora #LINESTART ;
-    sta CRSRPNT
-    lda SHB
-    jsr printbyte
-    lda SLB
-    jsr printbyte
-    jsr PRIMM
-    .asciiz " bytes left(hex)\n"
+    ;lda CRSRPNT ; Let's return to beginning of the line
+    ;and #%11000000 ; keep only section bits
+    ;ora #LINESTART ;
+    ;sta CRSRPNT
+    ;jsr PRIMM
+    ;.asciiz " bytes left(hex)\n"
     jsr PRIMM
     .asciiz "\nData loaded into RAM at $0300. \nPress F5 or type \"run\" to start executing at $0300. \n"
     jsr rf_nop
-    cli
+  ;  jsr resetkb
+  ;  jmp main
 
 nomsg:
 
@@ -298,7 +350,7 @@ nomsg:
     bmi skippedcursor ; We already flipped
 
 flip:
-
+    ldy #0
     lda kb_flags
     eor #CRSR
     ora #CRSRF ; Set flip bit
@@ -310,6 +362,7 @@ flip:
     sta (CRSRPNT),y
     bne cursordone ; BRA
     cursoroff:
+    jsr resetkb
     lda CRSRCHR
     sta (CRSRPNT),y
     cursordone:
@@ -323,35 +376,54 @@ flip:
     lda CRSRPNT2
     sta $55
     pha
-    LDA #$7c  ; Print timer in upper right corner of screen
-    sta CRSRPNT
-    lda #$27
-    sta CRSRPNT2
-    lda MILLISH
-    jsr printbyte
 
-    LDA #$74 ; Debug ERRS and show cursor pointer next to timer on screen
+    LDA #$4e  ; Print debug in bottom right corner of screen
     sta CRSRPNT
     lda #$27
     sta CRSRPNT2
+
+    ;lda #$6f
+    ;sta CRSRPNT
+    lda (DEBUGP),y
+    jsr printbyte
+    inc CRSRPNT ; Space
+    ;LDA #$72 ; Debug ERRS and show cursor pointer next to timer on screen
+    ;sta CRSRPNT
+    ;lda #$27
+    ;sta CRSRPNT2
     lda ERRS
     jsr printbyte
-    inc CRSRPNT
+    inc CRSRPNT ; Space
     lda $55
     jsr printbyte
     lda $54
     jsr printbyte
+    inc CRSRPNT ; Space
+    lda MILLISH
+    jsr printbyte
+    inc CRSRPNT ; Space
+    lda IER
+    jsr printbyte
+    inc CRSRPNT ; Space
+    lda IFR
+    jsr printbyte
+    inc CRSRPNT ; Space
+    lda kbshift
+    jsr printbyte
+    inc CRSRPNT ; Space
 
     pla
     sta CRSRPNT2
     pla
     sta CRSRPNT
 .endif
-    sei
-    lda kb_rptr
-    cmp kb_wptr
-    cli
-    bne key_pressed
+
+sei
+lda kb_rptr
+cmp kb_wptr
+cli
+bne key_pressed
+
     jmp main
 
 key_pressed:
@@ -785,6 +857,26 @@ asctobyte: ; Reads two hex characters from keyboard buffer, x indexed, and retur
     ; Return value in A
     rts
 
+resetkb:
+lda IFR
+and #%00100000
+bne notthistime
+sei
+LDA #%01000000
+STA ACR               ; T1 continuous - disable Shift register
+LDA #%01101100
+STA ACR             ; T1 continuous, T2 count, PB7 disabled, Shift In External
+lda #%11100000  ; Set T1 + T2
+sta IER
+
+lda kbbit
+sta T2CL
+lda #0
+sta T2CH
+notthistime:
+cli
+rts
+
 mon:
 ; Print line starting address
 ; Print 8 ascii hex bytes separated by ' '
@@ -823,6 +915,10 @@ notof:
     ldx #8
 printabuf:
     lda ABUF,x
+    cmp #$0A
+    bne notnl
+    tya ; Zero A
+    notnl:
     jsr printa
     dex
     bne printabuf
@@ -846,6 +942,14 @@ printbyte:
     pla
     jsr printa
     rts
+
+printfast:
+sta (CRSRPNT),y
+inc CRSRPNT
+bne printedfast
+inc CRSRPNT2
+printedfast:
+rts
 
 printa:
     sta TMP2 ; save A
@@ -910,7 +1014,7 @@ rarr:
     inc CRSRPNT
     lda CRSRPNT
     and #$3F   ; Discard MS bits since we only care about current line
-    cmp #$3f
+    cmp #LINEEND
     bcc checkedarrows ; A < 62 == Not Front porch
     jsr newline
     ora #LINESTART
@@ -948,7 +1052,7 @@ printk:
 checkl: ; This is user input, so we have to make sure we don't hit VGA blanking by mistake
     lda CRSRPNT
     and #$3F   ; Discard MS bits since we only care about current line
-    cmp #$3F
+    cmp #LINEEND
     bcc chs ; A < 62 == Not Front porch
     jsr newline
 chs:
@@ -984,41 +1088,42 @@ checkedbottom:
   ; IRQ vector points here ; Thanks to Ben Eater for a very useful PS2->Ascii interface
   ;IFR is IRQ Tl T2 CBl CB2 SR CA1 CA2
 irq:
-  pha
-;  lda #%00100000 ; We need T2 to fire super fast, so we check it first.
+  pha ; Save A
+  txa
+  pha ; Save X
+
+;  lda #%00100000 ; We need T2 to fire super fast, so we check it first.;
 ;  and IFR
 ;  bne t2_irq
 
 ;Alt approach
-; lda IER
-; and IFR ; We only care about active IRQ's
-; asl ; IRQ in C
-; asl ; T1 flag in C
-; bcs t1_irq
-; asl ; T2
-; bcs t2_irq
-; asl ; CB1
-; asl ; CB2
-; asl ; SR
-; asl ; CA1
+ lda IER
+ and IFR ; We only care about active IRQ's
+ asl ; IRQ in C
+ asl ; T1 flag in C
+ bcs t1_irq
+ asl ; T2
+ bcs t2_irq
+ ;asl ; CB1
+ ;asl ; CB2
+ ;asl ; SR
+ ;asl ; CA1
 ; bcs keyboard_interrupt
 ; asl ; CA2
 
-  bit IFR ; T1 as fast as possible
-  bvs t1_irq
+;  bit IFR ; T1 as fast as possible
+;  bvs t1_irq
 
-  txa
-  pha
   tsx
   lda $0103,x ; Pull status register off stack and check break flag
   and #$10
   bne hitbrk
 
-  lda IFR
-  and #2
-  bne keyboard_interrupt
+;  lda IFR
+;  and #2
+;  bne keyboard_interrupt
   inc ERRS ;Should never end up here...
-  rti
+  jmp exit
 
 hitbrk:
   ; jmp reset
@@ -1029,20 +1134,6 @@ hitbrk:
   sta $105,x
 jmp exit
 
-  keyboard_interrupt:
-    lda kb_flags
-    and #RELEASE   ; check if we're releasing a key
-    beq read_key   ; otherwise, read the key
-
-    lda kb_flags
-    eor #RELEASE   ; flip the releasing bit
-    sta kb_flags
-    lda PORTA      ; read key value that's being released
-    cmp #$12       ; left shift
-    beq shift_up
-    cmp #$59       ; right shift
-    beq shift_up
-    jmp exit
 
     t1_irq:
         bit T1CL ; Clear irq
@@ -1053,14 +1144,65 @@ jmp exit
         inc MILLIS
         bne t1_irq_exit
         inc MILLIS+1
+
     t1_irq_exit:
-        pla
-        rti
+    ;    pla
+    ;    rti
+    jmp exit
+
+;    cb1_IRQ:
+;        dec kbbit
+;        lda PORTB ; clear IRQ
+;        pla
+;        rti
 
 
+        t2_irq:
+        lda #$81
+        sta $5000 ; Ouput only register debug
+        lda SR1 ;
+        tax
+        lda reversebits, x
+        sta KEYBOARD
 
-;        t2_irq:
-;        lda #%00010000
+        LDA #%01100000
+        STA ACR               ; T1 continuous - disable Shift register
+        LDA #%01101100
+        STA ACR             ; T1+T2, reenable Shift register
+        lda kbshift ; If we count 11(10 + one we miss?) falling edges we should end up at the same index in the shifted data
+        sta T2CL
+        lda #0
+        sta T2CH
+
+        clc
+        lda MILLIS
+        adc #25
+        sta LASTKB
+        lda MILLISH
+        adc #0 ; C
+        sta LASTKBH
+        setrferr:
+      ;  inc RF_ERR
+
+; Fall through to scancode -> ascii parsing -> key buffer
+
+        keyboard_interrupt:
+          lda kb_flags
+          and #RELEASE   ; check if we're releasing a key
+          beq read_key   ; otherwise, read the key
+
+          lda kb_flags
+          eor #RELEASE   ; flip the releasing bit
+          sta kb_flags
+        ;  lda PORTA      ; read key value that's being released
+          lda KEYBOARD
+          cmp #$12       ; left shift
+          beq shift_up
+          cmp #$59       ; right shift
+          beq shift_up
+          jmp exit
+
+  ;        lda #%00010000
 ;        eor PORTB
 ;        sta PORTB
 ;        lda #0
@@ -1084,7 +1226,8 @@ jmp exit
     jmp noclear
 
   read_key:
-    lda PORTA
+    ;lda PORTA
+    lda $0c
     cmp #$77 ; Either numlock or pause/break - we reset without clearing ram
     beq break
     cmp #$f0        ; if releasing a key
@@ -1147,6 +1290,8 @@ jmp exit
     jmp ekey_up
 
   exit:
+  lda #1
+  sta $5000 ; OOR debug
     pla
     tax
     pla
@@ -1207,18 +1352,40 @@ jmp exit
         .byte "????????????????" ; E0-EF
         .byte "????????????????" ; F0-FF
 
+reversebits:
+        .byte 0, 128, 64, 192, 32, 160, 96, 224, 16, 144, 80, 208, 48, 176, 112, 240
+        .byte 8, 136, 72, 200, 40, 168, 104, 232, 24, 152, 88, 216, 56, 184, 120
+       .byte 248, 4, 132, 68, 196, 36, 164, 100, 228, 20, 148, 84, 212, 52, 180
+       .byte 116, 244, 12, 140, 76, 204, 44, 172, 108, 236, 28, 156, 92, 220, 60
+       .byte 188, 124, 252, 2, 130, 66, 194, 34, 162, 98, 226, 18, 146, 82, 210, 50
+       .byte 178, 114, 242, 10, 138, 74, 202, 42, 170, 106, 234, 26, 154, 90, 218
+       .byte 58, 186, 122, 250, 6, 134, 70, 198, 38, 166, 102, 230, 22, 150, 86, 214
+       .byte 54, 182, 118, 246, 14, 142, 78, 206, 46, 174, 110, 238, 30, 158, 94
+       .byte 222, 62, 190, 126, 254, 1, 129, 65, 193, 33, 161, 97, 225, 17, 145, 81
+       .byte 209, 49, 177, 113, 241, 9, 137, 73, 201, 41, 169, 105, 233, 25, 153, 89
+       .byte 217, 57, 185, 121, 249, 5, 133, 69, 197, 37, 165, 101, 229, 21, 149, 85
+       .byte 213, 53, 181, 117, 245, 13, 141, 77, 205, 45, 173, 109, 237, 29, 157
+       .byte 93, 221, 61, 189, 125, 253, 3, 131, 67, 195, 35, 163, 99, 227, 19, 147
+       .byte 83, 211, 51, 179, 115, 243, 11, 139, 75, 203, 43, 171, 107, 235, 27
+       .byte 155, 91, 219, 59, 187, 123, 251, 7, 135, 71, 199, 39, 167, 103, 231, 23
+       .byte 151, 87, 215, 55, 183, 119, 247, 15, 143, 79, 207, 47, 175, 111, 239
+       .byte 31, 159, 95, 223, 63, 191, 127, 255
 
     spibyte:
           ;SR borrowed from http://www.cyberspice.org.uk/blog/2009/08/25/bit-banging-spi-in-6502-assembler/
           ;I think GW used this way too?
-          ;Bit 7 – MISO (Input data from the slave to the computer) ; We can swap these by doing bvc spibyte2 instead of bpl spibyte2 and fixing DDRB - we should prefer PB7 to be an output and PB6 an input because of T1 and T2 hw features(T1 out to PB7 and T2 in to PB6)
-          ;Bit 6 – MOSI (Output data from the computer to the slave)
-          ;Bit 1 – SCS (Output slave chip select)
+          ;Bit 5 – MISO (Input data from the peripheral to the computer) ;
+          ;Bit 7 – MOSI (Output data from the computer to the peripheral) We should prefer PB7 to be an output and not use PB6 because of T1 and T2 hw features(T1 out to PB7 and T2 in to PB6)
+          ;Bit 1 – CS (Chip select)
           ;Bit 0 – SCLK (Output SPI clock)
+
                       sta outb
+
                       lda PORTB
-                      and #%00111100
+                      and #%01011100
                       sta $1E ; Save bits not used by SPI
+
+
                       TXA
                       PHA
                       TYA
@@ -1227,6 +1394,7 @@ jmp exit
                       ldy #0
                       sty inb
                       ldx #8
+              ;        sei ; No IRQs during transfer plz
     spibytelp:
                       tya		; (2) set A to 0
                       asl outb	; (5) shift MSB in to carry
@@ -1238,15 +1406,18 @@ jmp exit
                       tya		; (2) set A to 0 (Do it here for delay reasons)
                       inc uservia	; (6) toggle clock high (SCLK is bit 0)
                       clc		; (2) clear C (Not affected by bit)
-                      bit uservia	; (4) copy MISO (bit 7) in to N (and MOSI in to V)
-                      bpl spibyte2	; (2) bvc if miso bit 6, bpl if miso bit 7
+                      ;bit uservia	; (4) copy MISO (bit 7) in to N (and MOSI in to V) ; 4 cycles
+                      ;bpl spibyte2	; (2) bvc if miso bit 6, bpl if miso bit 7 ; 2/3 cycles
+                      lda #miso ; 2 cycles
+                      and uservia ; 4 cycles
+                      beq spibyte2 ; 2/3 cycles
                       sec		; (2) set C if MISO bit is set (i.e. N) / Or V for miso on bit 6
     spibyte2:
                       rol inb		; (5) copy C (i.e. MISO bit) in to bit 0 of result
                       dec uservia	; (6) toggle clock low (SCLK is bit 0)
                       dex		; (2) next bit
                       bne spibytelp	; (2) loop
-
+                ;      cli ; IRQs ok from here
                       PLA
                       TAY
                       PLA
@@ -1254,6 +1425,126 @@ jmp exit
 
                       lda inb		; get result
                       rts
+
+i2c_start: ; Let's assume i2c addr is in A and RW bit is in C
+  rol ; Move address to top bits and RW bit to bit0
+  sta outb ; Save addr + rw bit
+
+  lda #SCL_INV ; Start with SCL as INPUT HIGH
+  and DDRB
+  sta DDRB
+
+  lda #SDA ; Insure SDA is output low before SCL is LOW
+  ora DDRB
+  sta DDRB
+  lda #SDA_INV
+  and PORTB
+  sta PORTB
+
+  lda #SCL_INV
+  and PORTB
+  sta PORTB
+  inc DDRB ; Set SCL as OUTPUT LOW
+  ; Fall through to send address + RW bit
+
+  ; From here on we can assume OUTPUTs are LOW and INPUTS are HIGH.
+  ; Maybe some of the juggling above is not necessary but let's not assume for now
+i2cbyteout:
+  lda #SDA_INV ; In case this is a data byte we set SDA LOW
+  and PORTB
+  sta PORTB
+  ldx #8
+i2caddrloop: ; At start of loop SDA and SCL are both OUTPUT LOW
+  asl outb ; Put MSB in carry
+  inc DDRB ; Set SCL LOW by setting it to OUTPUT
+  bcc seti2cbit0 ; If data bit was low
+  lda DDRB       ; else set it high
+  and #SDA_INV
+  sta DDRB
+  bcs was1 ; BRA
+seti2cbit0:
+  lda DDRB
+  ora #SDA
+  sta DDRB
+  was1:
+  dec DDRB  ; Let SCL go HIGH by setting it to input
+  dex
+  bne i2caddrloop
+
+  inc DDRB ; Set SCL low after last bit
+  lda DDRB ; Set SDA to INPUT
+  and #SDA_INV
+  sta DDRB
+  dec DDRB ; SCL high
+  ; NOP here?
+  lda PORTB ; Check ACK bit
+  clc
+  and #SDA
+  bne nack
+  sec ; Set carry to indicate ACK
+  nack:
+  inc DDRB ; SCL low
+  rts
+
+i2cbytein: ; Assume SCL is LOW
+  lda DDRB       ; Set SDA to input
+  and #SDA_INV
+  sta DDRB
+  ldx #8
+byteinloop:
+  clc ; Clearing here for more even cycle
+  dec DDRB ; SCL high
+  ; NOP?
+  lda PORTB
+  and #SDA
+  beq got0
+  sec
+  got0:
+  rol inb ; Shift carry into input byte
+  inc DDRB ; SCL low
+  dex
+  bne byteinloop
+
+  lda DDRB ; Send ACK
+  ora #SDA
+  sta DDRB
+  dec DDRB ; SCL high
+  nop ; Probably can't just toggle
+  inc DDRB ; Set clock low
+  lda DDRB       ; Set SDA to input (release it) - maybe not necessary
+  and #SDA_INV
+  sta DDRB
+rts ; Input byte in inb
+
+i2c_stop:
+  lda DDRB ; SDA low
+  ora #SDA
+  sta DDRB
+  dec DDRB ; SCL high
+  lda DDRB       ; Set SDA high after SCL == Stop condition.
+  and #SDA_INV
+  sta DDRB
+  rts
+
+i2c_test:
+  lda #$77 ; Address $77 = BMP180 address
+  clc ; Write
+  jsr i2c_start
+  ; Fail check here. C == 1 == ACK
+  bcc failed
+  lda #$D0 ; BMP180 register $D0 == chipID == $55
+  sta outb
+  jsr i2cbyteout
+  lda #$77 ; Address
+  sec ; Read
+  jsr i2c_start
+  jsr i2cbytein
+  jsr i2c_stop
+  failed:
+  rts
+
+
+
 
     rf_nop:
               lda PORTB
@@ -1406,3 +1697,5 @@ jmp exit
 .ORG $fffa
 .word nmi,reset,irq
 .reloc
+
+.export PRIMM, printk

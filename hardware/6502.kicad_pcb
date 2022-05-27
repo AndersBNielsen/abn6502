@@ -669,7 +669,7 @@
       (net 107 "Ø1B") (pinfunction "CE") (pintype "input") (tstamp f08895dc-4dcb-4aef-a39b-5a08864cdaaf))
     (pad "20" thru_hole oval locked (at 7.62 0 90) (size 1.6 1.6) (drill 0.8) (layers *.Cu *.Mask)
       (net 145 "+5V") (pinfunction "VCC") (pintype "power_in") (tstamp 5a33f5a4-a470-4c04-9e2d-532b5f01a5d6))
-    (model "${KISYS3DMOD}/Package_DIP.3dshapes/DIP-20_W7.62mm.wrl"
+    (model "${KICAD6_3DMODEL_DIR}/Package_DIP.3dshapes/DIP-20_W7.62mm.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
@@ -3780,7 +3780,7 @@
       (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 5fc4054a-b929-433e-a947-747fb7ed003d)
     )
-    (fp_text value "74HC04" (at 3.81 17.57) (layer "F.Fab")
+    (fp_text value "74HC04" (at 3.81 11.435 90) (layer "F.Fab")
       (effects (font (size 1 1) (thickness 0.15)))
       (tstamp 4aee84d1-0859-48ac-a053-5a981ee1b24a)
     )
@@ -5012,7 +5012,7 @@
       (net 72 "D6") (pinfunction "Pin_7") (pintype "passive") (tstamp 539dec9e-2c45-4201-ab13-cbbbab8fc31b))
     (pad "8" thru_hole oval locked (at 2.54 7.62 90) (size 1.7 1.7) (drill 1) (layers *.Cu *.Mask)
       (net 73 "D7") (pinfunction "Pin_8") (pintype "passive") (tstamp 7308e13a-4809-4e8e-af65-9905819aa376))
-    (model "${KISYS3DMOD}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_2x04_P2.54mm_Vertical.wrl"
+    (model "${KICAD6_3DMODEL_DIR}/Connector_PinHeader_2.54mm.3dshapes/PinHeader_2x04_P2.54mm_Vertical.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
@@ -5352,13 +5352,8 @@
       (net 151 "MISO") (pinfunction "MISO") (pintype "output") (tstamp 2bf3f24b-fd30-41a7-a274-9b519491916b))
     (pad "8" smd rect locked (at 4.49 -8.7 270) (size 1 2) (layers "B.Cu" "B.Paste" "B.Mask")
       (net 123 "Net-(J19-Pad1)") (pinfunction "IRQ") (pintype "output") (tstamp 4831966c-bb32-4bc8-a400-0382a02ffa1c))
-    (model "${MYSLOCAL}/mysensors.3dshapes/mysensors_radios.3dshapes/nrf24smd.wrl"
-      (offset (xyz -146.3674978 73.65999889 0.7619999886))
-      (scale (xyz 0.395 0.395 0.395))
-      (rotate (xyz 0 0 0))
-    )
-    (model "Housings_DFN_QFN.3dshapes/QFN-20-1EP_5x5mm_Pitch0.65mm.wrl"
-      (offset (xyz 0.4190999937 -2.768599958 1.574799976))
+    (model "/Users/abn/Dropbox/Kicad/mysensors.3dshapes-master/mysensors_radios.3dshapes/nrf24smd1.step"
+      (offset (xyz 0 0 1.5))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
     )

@@ -55,16 +55,7 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        "courtyards_overlap|155728446|159269999|00000000-0000-0000-0000-000061f522ee|f2480d0c-9b08-4037-9175-b2369af04d4c",
-        "courtyards_overlap|15766501|124111001|00000000-0000-0000-0000-000060e50bd2|6e105729-aba0-497c-a99e-c32d2b3ddb6d",
-        "courtyards_overlap|20219999|115675001|00000000-0000-0000-0000-000061f52280|00000000-0000-0000-0000-000061f52296",
-        "courtyards_overlap|20219999|118215001|00000000-0000-0000-0000-000061f52280|00000000-0000-0000-0000-000061f52a3b",
-        "courtyards_overlap|20219999|120755001|00000000-0000-0000-0000-000061f52a3b|6e105729-aba0-497c-a99e-c32d2b3ddb6d",
-        "courtyards_overlap|61700001|163300001|00000000-0000-0000-0000-000060df7d6f|00000000-0000-0000-0000-000060dfdf36",
-        "malformed_courtyard|19425000|147670000|4412226e-d975-40a2-921f-502ff4129a95|00000000-0000-0000-0000-000000000000",
-        "track_dangling|15621000|142367000|7bfa1704-7a78-4569-b948-61602dfd30d6|00000000-0000-0000-0000-000000000000"
-      ],
+      "drc_exclusions": [],
       "meta": {
         "filename": "board_design_settings.json",
         "version": 2
@@ -449,7 +440,7 @@
       "workbook_filename": ""
     },
     "page_layout_descr_file": "",
-    "plot_directory": "",
+    "plot_directory": "./",
     "spice_adjust_passive_values": false,
     "spice_external_command": "spice \"%I\"",
     "subpart_first_id": 65,
