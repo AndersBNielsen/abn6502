@@ -1,4 +1,4 @@
-ABNielsen.com 6502 Single Board Computer R1
+# ABNielsen.com 6502 Single Board Computer R1
 
 This is a 6502-based complete single board computer intended to help during the global IC shortage. Why use new chips when you can reuse scrap?
 
@@ -20,7 +20,7 @@ https://hackaday.io/project/184725-abn6502-sbc-r1
 
 For R1 I got rid of the Padauk MCU without increasing the chip count!
 
-Build instructions:
+# Build instructions:
 
 1) Send gerber files from /hardware to your favorite board house
 2) Build the project using assemble.sh - this will also try to burn the main ROM using Minipro. Dependencies: [CC65] (https://github.com/cc65/cc65) and a way to burn the ROM's.
@@ -35,7 +35,9 @@ Setup SSH keys with a Raspberry Pi, connect an nRF24L01+ compatible module to it
 
 Also optional:
 Microsoft BASIC can be enabled by cloning the msbasic Github repo into the same folder you cloned this repo.
-git clone https://github.com/mist64/msbasic.git
+
+> git clone https://github.com/mist64/msbasic.git
+
 Then uncomment ;BASIC := 1 (Remove the ";") and run assemble.sh - this will let you run BASIC by pressing F4.
 To change settings for BASIC, values can be changed in defines_abn6502.s
 
