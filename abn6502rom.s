@@ -3,7 +3,7 @@
 .feature org_per_seg
 .feature c_comments
 
-.export main, kb_rptr, PRIMM, printk, printbyte, wkey, PORTB, TIMEOUT,exitirq, printa, newline, setpulses, scrp, scwp, simpledelay, selectbaudrate, MILLISH,resetkb, clrscn,checkkeyboard, kb_buffer, MONRDKEY,CRSRPNT, t2irqreg1, MILLIS
+.export I2CADDR, I2CREG, i2c_read, i2c_test, main, kb_rptr, PRIMM, printk, printbyte, wkey, PORTB, TIMEOUT,exitirq, printa, newline, setpulses, scrp, scwp, simpledelay, selectbaudrate, MILLISH,resetkb, clrscn,checkkeyboard, kb_buffer, MONRDKEY,CRSRPNT, t2irqreg1, MILLIS
 
 ;BASIC := 1 ; 1 if BASIC is enabled
 ;DEBUG = 1
@@ -23,7 +23,7 @@ PCR  = $600C ; [7:5] CB2 Control, [4] CBl Control, [3:1] CA2 Control, [0] CAl Co
 IFR  = $600D ; [7:0] IRQ Tl T2 CBl CB2 SR CA1 CA2
 IER  = $600E ; [7:0] S/C Tl T2 CBl CB2 SR CA1 CA2
 PORTANHS = $600F
-CTRL = $5000
+CTRL = $7000
 
 TIMEOUT = 7998 ; Should be around 2ms
 
@@ -77,6 +77,8 @@ ABUF = movedfromzp+8 ; 8 bytes
 TMP4 = movedfromzp+16
 SVCSR = movedfromzp+17
 ;+1
+I2CADDR = movedfromzp+19
+I2CREG = movedfromzp+20
 
 zp_s = $f8
 kb_wptr = zp_s
@@ -128,6 +130,7 @@ KCS300PH = 8 ; and 8 2400Hz pulses for a 1
 TAPEVARS = movedfromzp+32
 CBIT = TAPEVARS
 RXBYTE = TAPEVARS+1
+BITNO = TAPEVARS+1 ; Reusing
 TAPEFLAGS = TAPEVARS+2
 PULSES = TAPEVARS+3
 NRZBYTE = TAPEVARS+4
@@ -153,8 +156,8 @@ miso  = %00100000
 
 SDA   = 8; PB3 bitmask
 SDA_INV = $F7
-SCL   = 1; PB0 bitmask
-SCL_INV = $FE
+SCL   = 16; PB4 bitmask
+SCL_INV = $EF
 
 .segment "RODATA"
 ;.org $8000 ; Not strictly needed with CA65 but shows correct address in listing.txt
@@ -656,13 +659,23 @@ jread:
       sta MONL
 ;      inc kb_rptr
 ;      jmp newmon
-      ldy #0
-      lda (MONL),y
       jsr PRIMM
-      .asciiz "\nRead: "
+      .asciiz "\nRead:\n"
+      reread:
+      lda CRSRPNT
+      and #%11000000 ; keep only section bits
+      ora #LINESTART ;
+      sta CRSRPNT
+      ldy #0
+      sty kb_rptr
+      sty kb_wptr
+      lda (MONL),y
       jsr printbyte
+      jsr checkkeyboard
+      beq reread
       jsr PRIMM
       .asciiz "\nPress F1 to enter monitor\n"
+
       jmp eom
 err:
       lda CRSRPNT
@@ -722,12 +735,15 @@ f2_pressed:
         jmp eom
 
 f3_pressed:
+    .ifdef BASIC
         lda #>RAMSTART2
         sta SVPH
         lda #<RAMSTART2
         sta SVP
+    .endif
         jsr loadfromtape
         jmp eom
+
 
 f4_pressed:
 .ifdef BASIC
@@ -749,10 +765,11 @@ f5_pressed:
         jmp run
 
 f6_pressed:
-        jsr readrf24regs
-        jsr PRIMM
-        .asciiz "Read RF24 configuration!"
-        jsr newline
+        ;jsr readrf24regs
+        ;jsr PRIMM
+        ;.asciiz "Read RF24 configuration!"
+        ;jsr newline
+
         jmp eom
 
 f7_pressed:
@@ -909,7 +926,7 @@ nothex:
         rts
 
 
-
+    .ifdef BASIC
         MONISCNTC:
         sty TMP4
         stx TMP3 ; X to TMP3
@@ -976,6 +993,7 @@ bell:
         ldx TMP3
       skipcout:
         rts
+.endif
 
 clrscn:
     lda #0
@@ -1423,6 +1441,7 @@ rts
      sta kb_wptr
      sta kb_rptr
      sta t2irqreg1
+     sta kb_flags
      sta T2CH
      lda #1
      sta CTRL
@@ -1554,6 +1573,9 @@ txa ; IER AND IFR
   inc ERRS ;Should never end up here...
   jmp exitirq
 
+  gogmillis:
+  jmp gmillis
+
     t1_irq:
         bit T1CL ; Clear irq
 
@@ -1567,20 +1589,35 @@ txa ; IER AND IFR
         ; SVP Save pointer low
         ; CBIT current bit mask
 
-        lda TAPEFLAGS ; If we just started then send a 0 bit to make the 7F leader
-        bpl running
-        and #$7F ; Remove flag
-        sta TAPEFLAGS
-        lda PULSESL ; 8 Half pulses of 1200Hz
-        asl ; PULSESL holds full cycles
-        sta PULSES
-        lda #3
-        sta T1LH
-        lda #$3f
-        sta T1LL
-        bne t1_irq_exit ; BRA
+        ; Probably don't need this flag anymore
+        ;lda TAPEFLAGS ; If we just started then send a 0 bit to make the 7F leader
+        ;bpl running
+        ;and #$7F ; Remove flag
+        ;sta TAPEFLAGS
+        ;inc BITNO
+        ;lda PULSESL ; 8 Half pulses of 1200Hz
+        ;asl ; PULSESL holds full cycles
+        ;sta PULSES
+        ;lda #3
+        ;sta T1LH
+        ;lda #$3f
+        ;sta T1LL
+        ;bne t1_irq_exit ; BRA
 
         running:
+        inc BITNO
+        lda BITNO
+        cmp #13 ; This is a bit messy, could use a fix
+        bne notnewbyte
+        lda #1
+        sta BITNO
+        jmp send0
+        notnewbyte:
+        cmp #1
+        beq send0
+        cmp #10 ; Bit 10 and 11 should send a 1
+        bcs send1
+
         lda CBIT
         bne here ; Mask bit has not been shifted out yet
         lda #1 ; Mask = LSB
@@ -1596,7 +1633,7 @@ here: ; New bit
         lda #1
         sta T1LH
         lda #$9f
-        bne there
+        bne there ; BRA
         send0:
         lda PULSESL ; 8 Half pulses of 1200Hz
         asl ; PULSESL holds full cycles
@@ -1606,6 +1643,16 @@ here: ; New bit
         lda #$3f
 there:
         sta T1LL
+
+        lda BITNO
+        cmp #1
+        beq notdoneyet
+        cmp #12
+        beq gonextbit ; This little bit of juggling means we move on to the next byte after the stop bits
+        cmp #9
+        bcs notdoneyet
+
+        gonextbit:
         clc ; Let's make sure we don't shift in a carry by mistake
         asl CBIT ;Next bit
         bne notdoneyet
@@ -1996,6 +2043,7 @@ reversebits:
                       tay ; IRQ assumes y is 0.
                       lda #0
                       sta CBIT
+                      sta BITNO
 
                       lda #135 ; Sine or cosine can be selected by odd or even leader pulses - let's make sure this number is high enough to count as a 7 "1" bits
                       sta PULSES ; Start with leader of x "1" pulses at TIMEOUT interval. This should be followed by #$7F to sync start bit.
@@ -2036,7 +2084,6 @@ reversebits:
 
                       basicsavetotape:
                       .ifdef BASIC
-
                       lda #<RAMSTART2
                       sta SVP
                       lda #>RAMSTART2
@@ -2105,6 +2152,7 @@ reversebits:
                         sta onesinarow
                         lda #8
                         sta CBIT
+                        lda #2
                         sta LOADTIMEOUT
                         lda #$32
                         sta plzpnt+1
@@ -2132,11 +2180,20 @@ reversebits:
                         sta TAPEFLAGS
                         noleader:
                         lda SVP
+                        .ifdef BASIC
                         cmp #<RAMSTART2
                         bne noz
                         lda SVPH
                         cmp #>RAMSTART2
                         beq notstarted
+                        .else
+                        cmp #<1000
+                        bne noz
+                        lda SVPH
+                        cmp #>1000
+                        beq notstarted
+                        .endif
+
                         noz:
                         lda CRSRPNT
                         and #%11000000 ; keep only section bits
@@ -2147,10 +2204,17 @@ reversebits:
                         jsr printfast
                         sec
                         lda SVPH
+                        .ifdef BASIC
                         sbc #>RAMSTART2
                         jsr printbyte
                         lda SVP
                         sbc #<RAMSTART2
+                        .else
+                        sbc #>1000
+                        jsr printbyte
+                        lda SVP
+                        sbc #<1000
+                        .endif
                         jsr printbyte
                         jsr PRIMM
                         .asciiz " bytes received"
@@ -2171,7 +2235,7 @@ reversebits:
                         ; Disable CA1 in IRQ on timeout
                         timeout:
                         jsr PRIMM
-                        .asciiz "Finished loading.\n"
+                        .asciiz "\nFinished loading.\n"
                         exituserland:
                         lda #2 ; Disable CA1
                         sta IER
@@ -2322,9 +2386,31 @@ reversebits:
                         gtx:
                         jmp exitirq ; IRQ exit in ROM
 
+                        checkstart:
+                        lda #0
+                        plp
+                        ror
+                        beq afternosave
+                        jmp morebits ; Bad start bit
+
                       savebit:
+                        php ; Save carry
+                        lda CBIT
+                        cmp #11 ; Check start bit
+                        beq checkstart
+                        cmp #2 ; Throw away parity
+                        beq nosave
+                        cmp #1 ; Throw away stop
+                        beq nosave
+                        plp
                         ror RXBYTE ; Shift in bit from carry
+
+                        jmp afternosave
+                        nosave:
+                        plp
+                        afternosave:
                         bit TAPEFLAGS
+
                         ;Tapeflags
                         ;$80 = nrzbit
                         ;$40 = startbyte received
@@ -2392,6 +2478,8 @@ reversebits:
                         ;beq aprsleader
                         rts ; Don't want to fall through
 
+
+
                         save:
                         dec CBIT
                         bne morebits
@@ -2426,7 +2514,8 @@ reversebits:
                         ;jsr printbyte
                         ;lda #' '
                         ;jsr printk
-                        lda #8
+                        ; Here we should decide if we're going for 8 or 11 bits - buts lets assume 11.
+                        lda #11
                         sta CBIT
                         morebits:
                         rts
@@ -2435,7 +2524,7 @@ reversebits:
                         lda TAPEFLAGS
                         ora #$60  ; Set leader flag
                         sta TAPEFLAGS
-                        lda #8
+                        lda #10 ; First time we already have the start bit
                         sta CBIT
                         rts
 
@@ -2460,7 +2549,7 @@ NOP
 bne delay
 rts
 
-/*
+
 i2c_start: ; Let's assume i2c addr is in A and RW bit is in C
   rol ; Move address to top bits and RW bit to bit0
   sta outb ; Save addr + rw bit
@@ -2479,7 +2568,9 @@ i2c_start: ; Let's assume i2c addr is in A and RW bit is in C
   lda #SCL_INV
   and PORTB
   sta PORTB
-  inc DDRB ; Set SCL as OUTPUT LOW
+  lda DDRB
+  ora #SCL
+  sta DDRB ; Set SCL LOW by setting it to OUTPUT
   ; Fall through to send address + RW bit
 
   ; From here on we can assume OUTPUTs are LOW and INPUTS are HIGH.
@@ -2491,7 +2582,9 @@ i2cbyteout:
   ldx #8
 i2caddrloop: ; At start of loop SDA and SCL are both OUTPUT LOW
   asl outb ; Put MSB in carry
-  inc DDRB ; Set SCL LOW by setting it to OUTPUT
+  lda DDRB
+  ora #SCL
+  sta DDRB ; Set SCL LOW by setting it to OUTPUT
   bcc seti2cbit0 ; If data bit was low
   lda DDRB       ; else set it high
   and #SDA_INV
@@ -2502,15 +2595,21 @@ seti2cbit0:
   ora #SDA
   sta DDRB
   wasone:
-  dec DDRB  ; Let SCL go HIGH by setting it to input
+  lda DDRB
+  and #SCL_INV
+  sta DDRB ; Set SCL HIGH by setting it to input; Let SCL go HIGH by setting it to input
   dex
   bne i2caddrloop
 
-  inc DDRB ; Set SCL low after last bit
+  lda DDRB
+  ora #SCL
+  sta DDRB ; Set SCL LOW by setting it to OUTPUT ; Set SCL low after last bit
   lda DDRB ; Set SDA to INPUT
   and #SDA_INV
   sta DDRB
-  dec DDRB ; SCL high
+  lda DDRB
+  and #SCL_INV
+  sta DDRB ; Set SCL HIGH by setting it to input
   ; NOP here?
   lda PORTB ; Check ACK bit
   clc
@@ -2518,67 +2617,104 @@ seti2cbit0:
   bne nack
   sec ; Set carry to indicate ACK
   nack:
-  inc DDRB ; SCL low
+  lda DDRB
+  ora #SCL
+  sta DDRB ; Set SCL LOW by setting it to OUTPUT
   rts
 
 i2cbytein: ; Assume SCL is LOW
   lda DDRB       ; Set SDA to input
   and #SDA_INV
   sta DDRB
+  lda #0
+  sta inb
   ldx #8
 byteinloop:
   clc ; Clearing here for more even cycle
-  dec DDRB ; SCL high
-  ; NOP?
+  lda DDRB
+  and #SCL_INV
+  sta DDRB ; Set SCL HIGH by setting it to input
+  nop
   lda PORTB
   and #SDA
   beq got0
   sec
   got0:
   rol inb ; Shift carry into input byte
-  inc DDRB ; SCL low
+  lda DDRB
+  ora #SCL
+  sta DDRB ; Set SCL LOW by setting it to OUTPUT
   dex
   bne byteinloop
 
-  lda DDRB ; Send ACK
-  ora #SDA
-  sta DDRB
-  dec DDRB ; SCL high
-  nop ; Probably can't just toggle
-  inc DDRB ; Set clock low
-  lda DDRB       ; Set SDA to input (release it) - maybe not necessary
+  lda DDRB ; Send NACK == SDA high (because we're ony fetching single bytes)
   and #SDA_INV
   sta DDRB
+  lda DDRB
+  and #SCL_INV
+  sta DDRB ; Set SCL HIGH by setting it to input
+  lda DDRB
+  ora #SCL
+  sta DDRB ; Set SCL LOW by setting it to OUTPUT
 rts ; Input byte in inb
 
 i2c_stop:
   lda DDRB ; SDA low
   ora #SDA
   sta DDRB
-  dec DDRB ; SCL high
+  lda DDRB
+  and #SCL_INV
+  sta DDRB ; Set SCL HIGH by setting it to input
+  nop
+  nop
   lda DDRB       ; Set SDA high after SCL == Stop condition.
   and #SDA_INV
   sta DDRB
   rts
 
 i2c_test:
-  lda #$77 ; Address $77 = BMP180 address
+  ;lda #$77 ; Address $77 = BMP180 address
+  lda I2CADDR
   clc ; Write
   jsr i2c_start
   ; Fail check here. C == 1 == ACK
   bcc failed
-  lda #$D0 ; BMP180 register $D0 == chipID == $55
+  ;lda #$D0 ; BMP180 register $D0 == chipID == $55
+  lda I2CREG ; VGA screen EDID usually has address $50
   sta outb
   jsr i2cbyteout
-  lda #$77 ; Address
+  ;lda #$77 ; Address
+  lda I2CADDR
   sec ; Read
   jsr i2c_start
   jsr i2cbytein
   jsr i2c_stop
+  lda inb
+  sec
+  rts
   failed:
+  lda #0
   rts
 
-*/
+i2c_read:
+  lda I2CADDR
+  clc ; We "write" the address we want to read from
+  jsr i2c_start
+  bcc readfail
+  lda #0
+  sta outb
+  jsr i2cbyteout
+  jsr i2c_stop
+  lda I2CADDR
+  sec ; Now we read the register data
+  jsr i2c_start
+  jsr i2cbytein
+  jsr i2c_stop
+  lda inb
+  readfail:
+  rts
+
+
 
 rubout:
 ldy #0
