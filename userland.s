@@ -1,5 +1,6 @@
 
 .feature string_escapes ; Allow c-style string escapes when using ca65
+.feature c_comments
 ;PRIMM = $FFC8 ; Userland can use ROM subroutines if we tell them where they are. Check listing.txt for current subroutine addresses
 ;.require "abn6502rom.s"
 .import kb_rptr: zeropage, scrp: zeropage, scwp: zeropage, CRSRPNT: zeropage, MILLIS: zeropage, MILLISH: zeropage
@@ -30,6 +31,7 @@ inc kb_rptr
 jsr printa
 
 userland:
+
   lda #$0A
   jsr printk
   jsr PRIMM
@@ -62,6 +64,25 @@ cOhtwotest:
   lda #<main
   jsr printbyte
 
+lda #$7f
+sta I2CREG+1
+lda I2CADDR
+jsr printbyte
+lda #':'
+jsr printk
+dumpi2c:
+inc CRSRPNT
+bne l77
+inc CRSRPNT+1
+l77:
+jsr i2c_test
+;rol
+jsr printbyte
+inc I2CREG
+dec I2CREG+1
+bne dumpi2c
+
+
 ;  waitforkey:
 ;  jsr MONRDKEY
 ;  bcc waitforkey
@@ -69,7 +90,7 @@ cOhtwotest:
 ;  beq done
 ;  jsr printa
 ;  jmp waitforkey
-;  done:
+  done:
 
 brk
 ;jmp main
