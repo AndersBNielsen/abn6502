@@ -23,11 +23,11 @@ For R1 I got rid of the Padauk MCU without increasing the chip count!
 # Build instructions:
 
 1) Send gerber files from /hardware to your favorite board house
-2) Build the project using assemble.sh - this will also try to burn the main ROM using Minipro. Dependencies: [CC65] (https://github.com/cc65/cc65) and a way to burn the ROM's.
+2) Build the firmware using assemble.sh (macOS/Linux) - this will also try to burn the main ROM using Minipro. Dependencies: [CC65] (https://github.com/cc65/cc65) and a way to burn the ROM's.
 3) Source the IC's - the spirit of this project is to contribute as little as possible to the global IC shortage and get used chips locally or from Ebay/AliExpress/etc.
 4) Burn the ROMs. I use a TL866II Plus variant for the actual ROMs.
-5) Solder away
-6) For the PS/2-keyboard I use the 6522's Shift Register, PB6, and a 74xx74 flip flop.  See my R1 Hardware overview at 7:46: https://youtu.be/w5cA64xof2I?t=466 This is now included on the board - instead of a PS/2 connector which can be harder to source I went with a USB-A-connector.
+5) Solder away. If you can solder 0805 components(poorly), you should be fine. Some optional components (the microUSB connector, the 3v3 regulator, and the RF-module) require a bit more skill.  
+6) For the PS/2-keyboard I use the 6522's Shift Register, PB6, and a 74xx74 flip flop.  See my R1 Hardware overview at 7:46: https://youtu.be/w5cA64xof2I?t=466 This is now included on the board - instead of a PS/2 connector which can be harder to source I went with a USB-A-connector. Keyboard plugs straight into the board. 
 7) Enjoy!
 
 Optional:
