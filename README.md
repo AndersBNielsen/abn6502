@@ -2,6 +2,8 @@
 
 This is a 6502-based complete single board computer intended to help during the global IC shortage. Why use new chips when you can reuse scrap?
 
+## Update! The newest ABN6502 SBC R1 board is available as a kit with gold plated (ENIG) PCB and (optionally) SMD components presoldered, limiting soldering to though hole components/sockets and configuration jumpers: https://www.imania.dk/index.php?currency=EUR&cPath=204&sort=5a&language=en
+
 Complete hardware overview of R1:
 
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=w5cA64xof2I" target="_blank">
@@ -22,7 +24,7 @@ For R1 I got rid of the Padauk MCU without increasing the chip count!
 
 # Build instructions:
 
-1) Send gerber files from /hardware to your favorite board house
+1) Send gerber files from /hardware to your favorite board house (or get a board from [my store](https://www.imania.dk/index.php?currency=EUR&cPath=204&sort=5a&language=en)) 
 2) Build the firmware using assemble.sh (macOS/Linux) - this will also try to burn the main ROM using Minipro. Dependencies: [CC65] (https://github.com/cc65/cc65) and a way to burn the ROM's.
 3) Source the IC's - the spirit of this project is to contribute as little as possible to the global IC shortage and get used chips locally or from Ebay/AliExpress/etc.
 4) Burn the ROMs. I use a TL866II Plus variant for the actual ROMs.
