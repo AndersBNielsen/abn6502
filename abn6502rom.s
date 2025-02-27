@@ -4,7 +4,7 @@
 
 .export I2CADDR, I2CREG, i2c_read, i2c_test, main, kb_rptr, PRIMM, printk, printbyte, wkey, PORTB, TIMEOUT,exitirq, printa, newline, setpulses, scrp, scwp, simpledelay, selectbaudrate, MILLISH,resetkb, clrscn,checkkeyboard, kb_buffer, MONRDKEY,CRSRPNT, t2irqreg1, MILLIS
 
-;BASIC := 1 ; 1 if BASIC is enabled
+BASIC := 1 ; 1 if BASIC is enabled
 ;DEBUG = 1
 PORTB = $6000 ; PB0: SCK/SCL, PB1: RF CS, PB2: RF CE, PB3: SDA, PB4,PB5: MISO ,PB6: PS/2 Clock In, PB7: MOSI/T1 Out (Tape drive output)
 PORTA = $6001
@@ -39,11 +39,12 @@ scbuf     = $0280 ; Scan code buffer
 USERLANDH = $03 ; RAM page userland code starts
 
 ; Screen constants
-SCREENSTARTH = $08 ; Change this to the page your Video RAM starts! (VRAM at $0800 requires a few jumpers to change from the default $2000 - this will change in the next build of R1)
-SCREENSTARTL = $4c ; Top left of screen - may differ between VGA screens
-LINESTART = $0c
-LINEEND = $3E
-NUMLINES = 28
+SCREENCLRH   = $08 ; Physical start of VRAM - Change this to the VRAM jumper mapping on the board
+SCREENSTARTH = $09 ; Change this to the page VRAM content starts depending on what makes your VGA screen happy! Default is $0800 == $08
+SCREENSTARTL = $92             ; Top left of screen - may differ between VGA screens
+LINESTART = $12 ; For 640x480 you want to limit (end - start) to < 40 characters. If screen supports widescreen like 800x480 it matters less. 
+LINEEND = $37
+NUMLINES = 25
 
 ;Custom keyboard mappings
 DN_ARR_KEY = $F3
@@ -164,7 +165,6 @@ SCL_INV = $EF
   nmi:
   reset:
           cld ; Because you never know
-
           ;CLEAR RAM
           sei ; In case this was not a hw reset
           ldx #$0
@@ -781,7 +781,7 @@ f8_pressed:
         newmon:
             jsr clrscn
         monmon:
-            lda #29
+            lda #25
             sta MONCNT
             lda MONH
             pha
@@ -997,7 +997,7 @@ bell:
 clrscn:
     lda #0
     sta CRSRPNT
-    lda #SCREENSTARTH ; Clear before screen to after screen
+    lda #SCREENCLRH ; Clear before screen to after screen
     sta CRSRPNT2
     ldy #0
     tya

@@ -1,4 +1,3 @@
-
 .feature string_escapes ; Allow c-style string escapes when using ca65
 .feature c_comments
 ;PRIMM = $FFC8 ; Userland can use ROM subroutines if we tell them where they are. Check listing.txt for current subroutine addresses
@@ -31,6 +30,15 @@ inc kb_rptr
 jsr printa
 
 userland:
+sei
+lda #$AA
+sta $20
+clc
+loophere:
+ror 
+sta $7000
+bne loophere
+
 
   lda #$0A
   jsr printk
