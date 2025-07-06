@@ -59,7 +59,12 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "hole_clearance|173950000|61705000|7f4ebb4c-de7f-481a-84e7-36955c0ed2a3|4dc67768-bae9-4e03-be1d-3c80d01d67a9",
+        "hole_clearance|173950000|61705000|c0a239e6-47a5-4465-b7b9-cee0db6f1fb0|4dc67768-bae9-4e03-be1d-3c80d01d67a9",
+        "hole_clearance|180050000|61705000|4b2426ce-3f9c-417e-8398-3c7b0053de0d|3a11b3e8-c967-4f0b-aa3d-a2129cfbd62c",
+        "hole_clearance|180050000|61705000|c482c2d7-2e1a-414c-9e41-886bfcf940eb|3a11b3e8-c967-4f0b-aa3d-a2129cfbd62c"
+      ],
       "meta": {
         "filename": "board_design_settings.json",
         "version": 2
@@ -89,7 +94,7 @@
         "length_out_of_range": "error",
         "lib_footprint_issues": "warning",
         "lib_footprint_mismatch": "warning",
-        "malformed_courtyard": "error",
+        "malformed_courtyard": "warning",
         "microvia_drill_out_of_range": "error",
         "missing_courtyard": "ignore",
         "missing_footprint": "warning",
@@ -103,7 +108,7 @@
         "silk_overlap": "warning",
         "skew_out_of_range": "error",
         "solder_mask_bridge": "error",
-        "starved_thermal": "error",
+        "starved_thermal": "warning",
         "text_height": "warning",
         "text_thickness": "warning",
         "through_hole_pad_without_hole": "error",
@@ -518,8 +523,8 @@
       "gencad": "",
       "idf": "",
       "netlist": "6502.net",
-      "plot": "",
-      "pos_files": "",
+      "plot": "Rev2-fab/",
+      "pos_files": "Rev2-fab/",
       "specctra_dsn": "",
       "step": "",
       "svg": "",
@@ -529,7 +534,7 @@
   },
   "schematic": {
     "annotate_start_num": 0,
-    "bom_export_filename": "",
+    "bom_export_filename": "Rev2-fab/6502.csv",
     "bom_fmt_presets": [],
     "bom_fmt_settings": {
       "field_delimiter": ",",
@@ -590,7 +595,7 @@
           "group_by": false,
           "label": "LCSC",
           "name": "LCSC",
-          "show": false
+          "show": true
         },
         {
           "group_by": false,
@@ -600,9 +605,9 @@
         }
       ],
       "filter_string": "",
-      "group_symbols": true,
+      "group_symbols": false,
       "name": "",
-      "sort_asc": true,
+      "sort_asc": false,
       "sort_field": "Reference"
     },
     "connection_grid_size": 50.0,

@@ -23,8 +23,8 @@ USR             := $000A; $000A
 STACK_TOP		:= $80
 SPACE_FOR_GOSUB := $33
 NULL_MAX		:= $0A
-WIDTH			:= 46
-WIDTH2			:= 46
+WIDTH			:= 40
+WIDTH2			:= 40
 
 ; memory layout
 RAMSTART2		:= $1000
