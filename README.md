@@ -6,11 +6,12 @@ This is a 6502-based complete single board computer intended to help during the 
 - Blank PCBs 
 - Fully mounted PCBs including sockets and headers
 - Kits with SMD components presoldered, limiting soldering to though hole components/sockets. 
+
 All gold plated (ENIG) PCBs: https://www.imania.dk/index.php?currency=EUR&cPath=204&sort=5a&language=en
 
-Complete hardware overview of R1:
-
 Coming soon: R2 video. 
+
+Complete hardware overview of R1:
 
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=w5cA64xof2I" target="_blank">
  <img src="http://img.youtube.com/vi/w5cA64xof2I/mqdefault.jpg" alt="Watch the video" width="240px" height="auto" border="10" />
