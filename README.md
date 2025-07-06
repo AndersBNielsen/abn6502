@@ -2,7 +2,11 @@
 
 This is a 6502-based complete single board computer intended to help during the global IC shortage. Why use new chips when you can reuse scrap?
 
-## Update Update! The newest ABN6502 SBC R2 board is available as blank PCBs, fully mounted PCBs and as kits with gold plated (ENIG) PCB and (optionally) SMD components presoldered, limiting soldering to though hole components/sockets and configuration jumpers: https://www.imania.dk/index.php?currency=EUR&cPath=204&sort=5a&language=en
+## Update Update! The newest ABN6502 SBC R2 board is available as:
+- Blank PCBs 
+- Fully mounted PCBs including sockets and headers
+- Kits with SMD components presoldered, limiting soldering to though hole components/sockets. 
+All gold plated (ENIG) PCBs: https://www.imania.dk/index.php?currency=EUR&cPath=204&sort=5a&language=en
 
 Complete hardware overview of R1:
 
