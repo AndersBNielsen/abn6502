@@ -4,7 +4,7 @@
 
 .export I2CADDR, I2CREG, i2c_read, i2c_test, main, kb_rptr, PRIMM, printk, printbyte, wkey, PORTB, TIMEOUT,exitirq, printa, newline, setpulses, scrp, scwp, simpledelay, selectbaudrate, MILLISH,resetkb, clrscn,checkkeyboard, kb_buffer, MONRDKEY,CRSRPNT, t2irqreg1, MILLIS
 
-BASIC := 1 ; 1 if BASIC is enabled
+BASIC := 1 ; 1 if BASIC  is enabled
 ;DEBUG = 1
 PORTB = $6000 ; PB0: SCK/SCL, PB1: RF CS, PB2: RF CE, PB3: SDA, PB4,PB5: MISO ,PB6: PS/2 Clock In, PB7: MOSI/T1 Out (Tape drive output)
 PORTA = $6001
@@ -40,11 +40,11 @@ USERLANDH = $03 ; RAM page userland code starts
 
 ; Screen constants
 SCREENCLRH   = $08 ; Physical start of VRAM - Change this to the VRAM jumper mapping on the board
-SCREENSTARTH = $09 ; Change this to the page VRAM content starts depending on what makes your VGA screen happy! Default is $0800 == $08
-SCREENSTARTL = $92             ; Top left of screen - may differ between VGA screens
-LINESTART = $12 ; For 640x480 you want to limit (end - start) to < 40 characters. If screen supports widescreen like 800x480 it matters less. 
+SCREENSTARTH = $08 ; Change this to the page VRAM content starts depending on what makes your VGA screen happy! Default is $0800 == $08
+SCREENSTARTL = $8d             ; Top left of screen - may differ between VGA screens
+LINESTART = $0d ; For 640x480 you want to limit (end - start) to < 40 characters. If screen supports widescreen like 800x480 it matters less. 
 LINEEND = $37
-NUMLINES = 25
+NUMLINES = 28
 
 ;Custom keyboard mappings
 DN_ARR_KEY = $F3
@@ -196,7 +196,7 @@ noclear: ;Soft reset point - BRK
 
           jsr clrscn
 
-          lda #$F1
+          lda #$09
           sta CTRL
 
           lda #SCREENSTARTL
@@ -242,10 +242,10 @@ message:	.asciiz "GREETINGS PROFESSOR FALKEN.", "\n", "SHALL WE PLAY A GAME?", "
 
 welcomedone:
 ;Let's enable the keyboard
-lda #$91
+lda #$89
 sta CTRL
 jsr resetkb
-lda #1
+lda #9
 sta CTRL
 cli
 
@@ -950,10 +950,10 @@ nothex:
         rts
 
 bell:
-        lda #$02
+        lda #$0A ; Blink screen
         sta CTRL
         jsr simpledelay
-        lda #1
+        lda #9 ; Video enable and CTRL3 for 0x800 VRAM
         sta CTRL
         bne donerubout
 
@@ -1411,7 +1411,7 @@ rts
 
     resetkb:
     sei
-    lda #$11
+    lda #$09
     sta CTRL
      LDA #%01000000
      STA ACR               ; T1 continuous - disable Shift register
@@ -1442,7 +1442,7 @@ rts
      sta t2irqreg1
      sta kb_flags
      sta T2CH
-     lda #1
+     lda #9
      sta CTRL
      bit T1CL ; Clear irq
      cli

@@ -10,3 +10,4 @@ _autosave*
 msbasic
 *-bak
 hardware/tmp
+hardware/fp-info-cache
