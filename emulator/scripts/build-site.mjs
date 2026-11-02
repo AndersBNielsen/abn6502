@@ -15,7 +15,5 @@ for (const [name, size, digest] of [
 await fs.rm(dist, { recursive: true, force: true });
 await fs.cp(site, dist, { recursive: true });
 await fs.copyFile(path.join(root, 'LICENSE.md'), path.join(dist, 'LICENSE.md'));
-const gitPrefix = execFileSync('git', ['rev-parse', '--show-prefix'], { cwd: root, encoding: 'utf8' }).trim().replace(/\/$/, '');
-const sourceTree = gitPrefix ? `HEAD:${gitPrefix}` : 'HEAD';
-execFileSync('git', ['archive', '--format=zip', `--output=${path.join(dist, 'abn6502-emulator-source.zip')}`, '--prefix=abn6502-emulator/', sourceTree], { cwd: root });
+execFileSync('git', ['archive', '--format=zip', `--output=${path.join(dist, 'abn6502-emulator-source.zip')}`, '--prefix=abn6502-emulator/', 'HEAD'], { cwd: root });
 console.log(`Built ${dist}`);
