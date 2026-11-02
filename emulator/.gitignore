@@ -1,3 +1,5 @@
 dist/
 node_modules/
 .DS_Store
+# The parent hardware repo ignores *.bin; these ROMs are required by the emulator.
+!site/roms/*.bin
