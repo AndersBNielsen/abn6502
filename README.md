@@ -1,5 +1,10 @@
 # ABNielsen.com 6502 Single Board Computer Revision 2
 
+
+## Browser emulator
+
+The self-contained [browser emulator](emulator/README.md) runs the real ABN6502 r2 ROM. [Try it online](https://www.imania.dk/abn6502-emulator/). From `emulator/`, run `npm test` and `npm run build`. Emulator code and bundled hardware/firmware assets have separate licenses; see [emulator/LICENSE.md](emulator/LICENSE.md).
+
 This is a 6502-based complete single board computer intended to help during the global IC shortage. Why use new chips when you can reuse scrap?
 
 ## Update Update! The newest ABN6502 SBC R2 board is available as:
